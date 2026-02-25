@@ -112,6 +112,11 @@ uv run server.py
 
 This will start the server and allow you to test the available tools.
 
+### HTTP
+```bash
+uv run fastmcp run server.py:yfinance_server --transport http --port 8000
+```
+
 ### Integration with Claude for Desktop
 
 To integrate this server with Claude for Desktop:
