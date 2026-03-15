@@ -85,6 +85,16 @@
 
 ## 安装
 
+### 推荐方式：使用 `uvx` 运行
+
+无需创建本地虚拟环境，直接从仓库运行服务器：
+
+```bash
+uvx --from git+https://github.com/richin13/yahoo-finance-mcp yahoo-finance-mcp
+```
+
+### 本地开发
+
 1. 克隆此仓库：
    ```bash
    git clone https://github.com/Alex2Yang97/yahoo-finance-mcp.git
@@ -100,15 +110,27 @@
 
 ## 使用方法
 
+### 快速开始
+
+通过以下命令运行打包后的入口点：
+
+```bash
+uvx --from git+https://github.com/richin13/yahoo-finance-mcp yahoo-finance-mcp
+```
+
+如果要测试当前本地工作区中的改动，可以运行：
+
+```bash
+uvx --from . yahoo-finance-mcp
+```
+
 ### 开发模式
 
-您可以通过运行以下命令使用 MCP Inspector 测试服务器：
+如果您正在本地克隆仓库中直接调试源码，可以运行：
 
 ```bash
 uv run server.py
 ```
-
-这将启动服务器并允许您测试可用工具。
 
 ### 与 Claude Desktop 集成
 
@@ -125,12 +147,11 @@ uv run server.py
      {
        "mcpServers": {
          "yfinance": {
-           "command": "uv",
+           "command": "uvx",
            "args": [
-             "--directory",
-             "/ABSOLUTE/PATH/TO/PARENT/FOLDER/yahoo-finance-mcp",
-             "run",
-             "server.py"
+             "--from",
+             "git+https://github.com/richin13/yahoo-finance-mcp",
+             "yahoo-finance-mcp"
            ]
          }
        }
@@ -141,12 +162,11 @@ uv run server.py
      {
        "mcpServers": {
          "yfinance": {
-           "command": "uv",
+           "command": "uvx",
            "args": [
-             "--directory",
-             "C:\\ABSOLUTE\\PATH\\TO\\PARENT\\FOLDER\\yahoo-finance-mcp",
-             "run",
-             "server.py"
+             "--from",
+             "git+https://github.com/richin13/yahoo-finance-mcp",
+             "yahoo-finance-mcp"
            ]
          }
        }
