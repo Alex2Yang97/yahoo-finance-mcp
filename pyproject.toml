@@ -9,6 +9,10 @@ dependencies = [
     "yfinance>=0.2.62",
 ]
 
+#: setup script entry point (server.py)
+[project.scripts]
+yahoo-finance-mcp = "server:main"
+
 [project.optional-dependencies]
 dev = [
     "pre-commit>=3.6.0",
