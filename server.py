@@ -1,4 +1,5 @@
 import json
+import re
 from enum import Enum
 
 import pandas as pd
@@ -28,6 +29,35 @@ class HolderType(str, Enum):
 class RecommendationType(str, Enum):
     recommendations = "recommendations"
     upgrades_downgrades = "upgrades_downgrades"
+
+
+# --- Ticker normalization ------------------------------------------------
+# Yahoo Finance represents US class shares with a hyphen (e.g. "BRK-B"), but
+# users and LLMs routinely type them with a dot or slash ("BRK.B", "BRK/B").
+# For the dotted form yfinance returns *empty* price data while Ticker.isin
+# still resolves to a valid ISIN, so the existing `isin is None` guard passes
+# and the bad request fails silently. Normalize the known single-letter US
+# share-class suffixes to the hyphen form.
+#
+# Only a single trailing "A"/"B" class letter is converted. Exchange suffixes
+# such as .TO, .L, .HK, .T, .AX are legitimate yfinance tickers and are left
+# untouched (e.g. "SHOP.TO", "RIO.L", "7203.T" are returned unchanged).
+_CLASS_SHARE_SUFFIXES = {"A", "B"}
+
+
+def normalize_ticker(ticker: str) -> str:
+    """Normalize US class-share tickers to the hyphen form yfinance expects.
+
+    "BRK.B" / "BRK/B" -> "BRK-B", "BF.B" -> "BF-B". Any symbol that is not a
+    plain <root><separator><class-letter> class share (including
+    exchange-suffixed tickers like "SHOP.TO" or "RIO.L") is returned unchanged.
+    """
+    if not ticker:
+        return ticker
+    match = re.fullmatch(r"\s*([A-Za-z]{1,6})[./-]([A-Za-z])\s*", ticker)
+    if match and match.group(2).upper() in _CLASS_SHARE_SUFFIXES:
+        return f"{match.group(1).upper()}-{match.group(2).upper()}"
+    return ticker
 
 
 # Initialize FastMCP server
@@ -85,7 +115,7 @@ async def get_historical_stock_prices(
             Intraday data cannot extend last 60 days
             Default is "1d"
     """
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -113,7 +143,7 @@ Args:
 )
 async def get_stock_info(ticker: str) -> str:
     """Get stock information for a given ticker symbol"""
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -141,7 +171,7 @@ async def get_yahoo_finance_news(ticker: str) -> str:
         ticker: str
             The ticker symbol of the stock to get news for, e.g. "AAPL"
     """
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -185,7 +215,7 @@ Args:
 async def get_stock_actions(ticker: str) -> str:
     """Get stock dividends and stock splits for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
     except Exception as e:
         print(f"Error: getting stock actions for {ticker}: {e}")
         return f"Error: getting stock actions for {ticker}: {e}"
@@ -208,7 +238,7 @@ Args:
 async def get_financial_statement(ticker: str, financial_type: str) -> str:
     """Get financial statement for a given ticker symbol"""
 
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -269,7 +299,7 @@ Args:
 async def get_holder_info(ticker: str, holder_type: str) -> str:
     """Get holder information for a given ticker symbol"""
 
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -306,7 +336,7 @@ Args:
 async def get_option_expiration_dates(ticker: str) -> str:
     """Fetch the available options expiration dates for a given ticker symbol."""
 
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -342,7 +372,7 @@ async def get_option_chain(ticker: str, expiration_date: str, option_type: str) 
         str: JSON string containing the option chain data
     """
 
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
@@ -384,7 +414,7 @@ Args:
 )
 async def get_recommendations(ticker: str, recommendation_type: str, months_back: int = 12) -> str:
     """Get recommendations or upgrades/downgrades for a given ticker symbol"""
-    company = yf.Ticker(ticker)
+    company = yf.Ticker(normalize_ticker(ticker))
     try:
         if company.isin is None:
             print(f"Company ticker {ticker} not found.")
