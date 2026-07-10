@@ -1,4 +1,7 @@
 import json
+import os
+import urllib.parse
+import urllib.request
 from enum import Enum
 
 import pandas as pd
@@ -48,8 +51,33 @@ Available tools:
 - get_option_expiration_dates: Fetch the available options expiration dates for a given ticker symbol.
 - get_option_chain: Fetch the option chain for a given ticker symbol, expiration date, and option type.
 - get_recommendations: Get recommendations or upgrades/downgrades for a given ticker symbol from yahoo finance. You can also specify the number of months back to get upgrades/downgrades for, default is 12.
+- get_fxmacrodata_catalogue: Get FXMacroData's supported macro indicators and endpoint coverage for a currency.
+- get_fxmacrodata_calendar: Get macroeconomic release calendar rows for a currency.
+- get_fxmacrodata_latest_announcements: Get the latest macroeconomic announcement rows for a currency.
 """,
 )
+
+
+FXMACRODATA_BASE_URL = "https://api.fxmacrodata.com"
+
+
+def _fxmacrodata_get(path: str, params: dict[str, str | None] | None = None) -> str:
+    """Fetch a read-only FXMacroData endpoint and return the raw JSON response."""
+    query_params = {key: value for key, value in (params or {}).items() if value}
+    api_key = os.getenv("FXMD_API_KEY")
+    if api_key:
+        query_params["api_key"] = api_key
+
+    query = urllib.parse.urlencode(query_params)
+    url = f"{FXMACRODATA_BASE_URL}{path}"
+    if query:
+        url = f"{url}?{query}"
+
+    try:
+        with urllib.request.urlopen(url, timeout=30) as response:
+            return response.read().decode("utf-8")
+    except Exception as e:
+        return f"Error: getting FXMacroData endpoint {path}: {e}"
 
 
 @yfinance_server.tool(
@@ -409,6 +437,60 @@ async def get_recommendations(ticker: str, recommendation_type: str, months_back
     except Exception as e:
         print(f"Error: getting recommendations for {ticker}: {e}")
         return f"Error: getting recommendations for {ticker}: {e}"
+
+
+@yfinance_server.tool(
+    name="get_fxmacrodata_catalogue",
+    description="""Get FXMacroData's supported macro indicators and endpoint coverage for a currency.
+
+Args:
+    currency: str
+        Three-letter currency code such as "usd", "jpy", "eur", "gbp", or "aud".
+        Defaults to "usd".
+""",
+)
+async def get_fxmacrodata_catalogue(currency: str = "usd") -> str:
+    """Get FXMacroData's supported macro indicators and endpoint coverage."""
+    return _fxmacrodata_get(f"/v1/data_catalogue/{currency.lower()}")
+
+
+@yfinance_server.tool(
+    name="get_fxmacrodata_calendar",
+    description="""Get macroeconomic release calendar rows from FXMacroData.
+
+Args:
+    currency: str
+        Three-letter currency code such as "usd", "jpy", "eur", "gbp", or "aud".
+        Defaults to "usd".
+    start_date: str
+        Optional start date in YYYY-MM-DD format.
+    end_date: str
+        Optional end date in YYYY-MM-DD format.
+""",
+)
+async def get_fxmacrodata_calendar(
+    currency: str = "usd", start_date: str | None = None, end_date: str | None = None
+) -> str:
+    """Get macroeconomic release calendar rows from FXMacroData."""
+    return _fxmacrodata_get(
+        f"/v1/calendar/{currency.lower()}",
+        {"start_date": start_date, "end_date": end_date},
+    )
+
+
+@yfinance_server.tool(
+    name="get_fxmacrodata_latest_announcements",
+    description="""Get the latest macroeconomic announcements from FXMacroData.
+
+Args:
+    currency: str
+        Three-letter currency code such as "usd", "jpy", "eur", "gbp", or "aud".
+        Defaults to "usd".
+""",
+)
+async def get_fxmacrodata_latest_announcements(currency: str = "usd") -> str:
+    """Get the latest macroeconomic announcement rows from FXMacroData."""
+    return _fxmacrodata_get(f"/v1/announcements/{currency.lower()}/latest")
 
 
 def main() -> None:
