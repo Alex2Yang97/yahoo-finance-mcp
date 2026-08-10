@@ -530,3 +530,146 @@ async def test_get_option_chain_invalid_expiration_date():
     # Server returns: "Error: No options available for the date {date}..."
     assert "Error" in result
     assert "No options available" in result
+
+
+# =============================================================================
+# get_option_chain payload-reduction tests (strike_window_pct / fields)
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_strike_window_shrinks_payload():
+    """A strike window returns a strict subset of the full chain."""
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    full = json.loads(await get_option_chain(TEST_TICKER, expiration_date, "calls"))
+    windowed = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", strike_window_pct=0.15
+        )
+    )
+
+    assert 0 < len(windowed) <= len(full)
+    full_strikes = {row["strike"] for row in full}
+    assert {row["strike"] for row in windowed} <= full_strikes
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_fields_projects_columns():
+    """`fields` restricts columns and always retains `strike`."""
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    result = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", fields=["bid", "ask"]
+        )
+    )
+    assert len(result) > 0
+    assert set(result[0].keys()) == {"strike", "bid", "ask"}
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_partial_field_typo_keeps_every_column():
+    """A partially misspelled `fields` list must not silently drop columns.
+
+    Keeping only the names that happened to match returns a chain that parses as
+    valid data while missing a column the caller asked for and believes it has.
+    Requesting bid + implied volatility with the natural-language spelling must
+    never yield bids with no volatility.
+    """
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    full = json.loads(await get_option_chain(TEST_TICKER, expiration_date, "calls"))
+    partial_typo = json.loads(
+        await get_option_chain(
+            TEST_TICKER,
+            expiration_date,
+            "calls",
+            # "implied volatility" is not a column; "impliedVolatility" is.
+            fields=["bid", "implied volatility"],
+        )
+    )
+
+    assert partial_typo == full
+    assert "impliedVolatility" in partial_typo[0]
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_documented_pricing_fields_all_resolve():
+    """Every column name the docs and prompts hand out must really exist.
+
+    If one of these drifts, the all-or-nothing projection silently degrades to
+    the full chain on every call and the payload reduction quietly stops working.
+    """
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    pricing_fields = [
+        "strike",
+        "bid",
+        "ask",
+        "lastPrice",
+        "impliedVolatility",
+        "openInterest",
+        "volume",
+    ]
+    result = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", fields=pricing_fields
+        )
+    )
+    assert set(result[0].keys()) == set(pricing_fields)
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_defaults_are_unchanged():
+    """Omitting both new args reproduces the historical full-chain response."""
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    default = json.loads(await get_option_chain(TEST_TICKER, expiration_date, "calls"))
+    explicit_none = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", strike_window_pct=None, fields=None
+        )
+    )
+    assert default == explicit_none
+    for col in ["strike", "lastPrice", "bid", "ask", "volume", "openInterest"]:
+        assert col in default[0]
+
+
+@pytest.mark.asyncio
+async def test_get_option_chain_unusable_filters_degrade_to_full_chain():
+    """Filters that would yield unusable data fall back to the full chain."""
+    exp_dates = json.loads(await get_option_expiration_dates(TEST_TICKER))
+    expiration_date = exp_dates[0]
+
+    full = json.loads(await get_option_chain(TEST_TICKER, expiration_date, "calls"))
+
+    # No requested field exists -> a strike-only chain would look valid but be
+    # unusable, so the full chain is returned instead.
+    all_unknown = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", fields=["not_a_column"]
+        )
+    )
+    assert all_unknown == full
+
+    # A window so narrow it selects nothing must not return an empty chain.
+    empty_window = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", strike_window_pct=0.0001
+        )
+    )
+    assert len(empty_window) == len(full)
+
+    # A non-positive window is treated as "no filtering".
+    zero_window = json.loads(
+        await get_option_chain(
+            TEST_TICKER, expiration_date, "calls", strike_window_pct=0
+        )
+    )
+    assert len(zero_window) == len(full)

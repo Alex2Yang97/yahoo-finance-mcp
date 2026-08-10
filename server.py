@@ -307,9 +307,97 @@ async def get_option_expiration_dates(ticker: str) -> str:
         return f"Error: getting option expiration dates for {ticker}: {e}"
 
 
+def _spot_price(company: yf.Ticker) -> float | None:
+    """Resolve the current underlying price, or None when unavailable.
+
+    Tries `fast_info` first (cheap, no full `.info` fetch) and falls back to the
+    most recent daily close. Returns None rather than raising so an unresolvable
+    spot degrades to "no strike filtering" instead of failing the request.
+    """
+    try:
+        price = company.fast_info.get("lastPrice")
+        if price is not None and float(price) > 0:
+            return float(price)
+    except Exception:
+        pass
+
+    try:
+        hist = company.history(period="1d", interval="1d")
+        if hist is not None and not hist.empty and "Close" in hist.columns:
+            closes = hist["Close"].dropna()
+            if len(closes) > 0 and float(closes.iloc[-1]) > 0:
+                return float(closes.iloc[-1])
+    except Exception:
+        pass
+
+    return None
+
+
+def _window_strikes(
+    company: yf.Ticker, chain: pd.DataFrame, strike_window_pct: float | None
+) -> pd.DataFrame:
+    """Restrict `chain` to strikes within +/- `strike_window_pct` of spot.
+
+    Returns the chain unchanged when no window is requested, the window is not a
+    positive number, spot cannot be resolved, or the window would select nothing
+    — a caller asking for a narrower view must never receive an empty chain when
+    a wider one exists.
+    """
+    if strike_window_pct is None or "strike" not in chain.columns:
+        return chain
+
+    try:
+        window = float(strike_window_pct)
+    except (TypeError, ValueError):
+        return chain
+    if window <= 0:
+        return chain
+
+    spot = _spot_price(company)
+    if spot is None:
+        return chain
+
+    windowed = chain[
+        (chain["strike"] >= spot * (1 - window))
+        & (chain["strike"] <= spot * (1 + window))
+    ]
+    return windowed if not windowed.empty else chain
+
+
+def _project_fields(chain: pd.DataFrame, fields: list[str] | None) -> pd.DataFrame:
+    """Restrict `chain` to `fields`, always retaining `strike`.
+
+    Projection is all-or-nothing: if *any* requested name is not a real column,
+    the full chain is returned unchanged.
+
+    A partial match is the dangerous case. Dropping just the unrecognized names
+    yields a chain that parses as valid data while silently missing a column the
+    caller asked for and believes it has — e.g. requesting
+    ``["bid", "implied volatility"]`` would hand back bids with no volatility at
+    all. Returning everything is wasteful but never wrong, and the caller can
+    see its projection did not apply.
+    """
+    if not fields:
+        return chain
+
+    available = set(chain.columns)
+    if any(field not in available for field in fields):
+        return chain
+
+    keep = [column for column in chain.columns if column in set(fields)]
+    if "strike" in chain.columns and "strike" not in keep:
+        keep.insert(0, "strike")
+    return chain[keep]
+
+
 @yfinance_server.tool(
     name="get_option_chain",
     description="""Fetch the option chain for a given ticker symbol, expiration date, and option type.
+
+A full chain is large (a liquid US name runs 40-90 strikes and ~17KB of JSON per
+expiration). Prefer `strike_window_pct` and `fields` to request only the strikes
+and columns you actually need — pulling several full chains into one analysis is
+the main driver of oversized requests.
 
 Args:
     ticker: str
@@ -318,15 +406,44 @@ Args:
         The expiration date for the options chain (format: 'YYYY-MM-DD')
     option_type: str
         The type of option to fetch ('calls' or 'puts')
+    strike_window_pct: float | None
+        Keep only strikes within +/- this fraction of the current spot price
+        (e.g. 0.15 keeps strikes from 85% to 115% of spot). Omit for every strike.
+    fields: list[str] | None
+        Only return these columns. `strike` is always included. Omit for every column.
+        Names must match these columns EXACTLY (they are case-sensitive, and none
+        contain spaces or underscores):
+            contractSymbol, lastTradeDate, strike, lastPrice, bid, ask, change,
+            percentChange, volume, openInterest, impliedVolatility, inTheMoney,
+            contractSize, currency
+        Note "lastPrice" (not "last"), "impliedVolatility" (not "implied volatility"),
+        "openInterest" (not "open interest"). If ANY name is not in that list the
+        projection is dropped and the full chain is returned, so a typo costs
+        payload rather than silently omitting a column you asked for.
+        A good pricing set: ["strike", "bid", "ask", "lastPrice",
+        "impliedVolatility", "openInterest", "volume"].
 """,
 )
-async def get_option_chain(ticker: str, expiration_date: str, option_type: str) -> str:
+async def get_option_chain(
+    ticker: str,
+    expiration_date: str,
+    option_type: str,
+    strike_window_pct: float | None = None,
+    fields: list[str] | None = None,
+) -> str:
     """Fetch the option chain for a given ticker symbol, expiration date, and option type.
 
     Args:
         ticker: The ticker symbol of the stock
         expiration_date: The expiration date for the options chain (format: 'YYYY-MM-DD')
         option_type: The type of option to fetch ('calls' or 'puts')
+        strike_window_pct: Keep only strikes within +/- this fraction of spot.
+            None returns every strike (the historical behavior).
+        fields: Only return these columns, matched exactly against the chain's
+            own column names. None returns every column (the historical
+            behavior). `strike` is always retained so rows stay identifiable.
+            If any name is unrecognized the projection is dropped entirely —
+            see :func:`_project_fields`.
 
     Returns:
         str: JSON string containing the option chain data
@@ -345,12 +462,12 @@ async def get_option_chain(ticker: str, expiration_date: str, option_type: str) 
 
         # Get the option chain
         option_chain = company.option_chain(expiration_date)
-        if option_type == "calls":
-            return option_chain.calls.to_json(orient="records", date_format="iso")
-        elif option_type == "puts":
-            return option_chain.puts.to_json(orient="records", date_format="iso")
-        
-        return f"Error: invalid option type {option_type}. Please use one of the following: calls, puts."
+        chain = option_chain.calls if option_type == "calls" else option_chain.puts
+
+        chain = _window_strikes(company, chain, strike_window_pct)
+        chain = _project_fields(chain, fields)
+
+        return chain.to_json(orient="records", date_format="iso")
     except Exception as e:
         print(f"Error: getting option chain for {ticker}: {e}")
         return f"Error: getting option chain for {ticker}: {e}"
