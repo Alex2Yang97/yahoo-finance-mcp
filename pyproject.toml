@@ -9,7 +9,7 @@ description = "MCP server implementation for yahoo finance integration"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "mcp[cli]>=1.6.0",
+    "mcp[cli]>=2.0.0",
     "yfinance>=0.2.62",
 ]
 
