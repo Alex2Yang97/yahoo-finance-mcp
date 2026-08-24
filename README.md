@@ -75,7 +75,7 @@ With this MCP server, you can use Claude to:
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.14.6 or higher
 - Dependencies as listed in `pyproject.toml`, including:
   - mcp
   - yfinance
