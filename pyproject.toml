@@ -4,13 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "yahoo-finance-mcp"
-version = "0.1.0"
+version = "0.1.1"
 description = "MCP server implementation for yahoo finance integration"
 readme = "README.md"
 requires-python = ">=3.14.6"
 dependencies = [
-    "mcp[cli]>=1.6.0",
-    "yfinance>=1.1.0",
+    "mcp[cli]>=2.1.0,<3",
+    "yfinance>=1.6.0,<2",
 ]
 
 [dependency-groups]

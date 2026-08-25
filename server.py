@@ -3,7 +3,7 @@ from enum import Enum
 
 import pandas as pd
 import yfinance as yf
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
 
 # Define an enum for the type of financial statement
@@ -30,8 +30,8 @@ class RecommendationType(str, Enum):
     upgrades_downgrades = "upgrades_downgrades"
 
 
-# Initialize FastMCP server
-yfinance_server = FastMCP(
+# Initialize MCP server
+yfinance_server = MCPServer(
     "yfinance",
     instructions="""
 # Yahoo Finance MCP Server
