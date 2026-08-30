@@ -1,3 +1,7 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
 [project]
 name = "yahoo-finance-mcp"
 version = "0.1.0"
@@ -18,6 +22,20 @@ dev = [
     "black>=25.12.0,<26",
     "isort>=5.13.2",
 ]
+
+#: setup script entry point (server.py)
+[project.scripts]
+yahoo-finance-mcp = "server:main"
+
+[project.optional-dependencies]
+dev = [
+    "pre-commit>=3.6.0",
+    "black>=24.2.0",
+    "isort>=5.13.2",
+]
+
+[tool.hatch.build.targets.wheel]
+only-include = ["server.py"]
 
 [tool.black]
 line-length = 100

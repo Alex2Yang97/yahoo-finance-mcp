@@ -878,10 +878,17 @@ wheels = [
 [[package]]
 name = "yahoo-finance-mcp"
 version = "0.1.0"
-source = { virtual = "." }
+source = { editable = "." }
 dependencies = [
     { name = "mcp", extra = ["cli"] },
     { name = "yfinance" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "black" },
+    { name = "isort" },
+    { name = "pre-commit" },
 ]
 
 [package.dev-dependencies]
@@ -896,9 +903,13 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "black", marker = "extra == 'dev'", specifier = ">=24.2.0" },
+    { name = "isort", marker = "extra == 'dev'", specifier = ">=5.13.2" },
     { name = "mcp", extras = ["cli"], specifier = ">=1.6.0" },
+    { name = "pre-commit", marker = "extra == 'dev'", specifier = ">=3.6.0" },
     { name = "yfinance", specifier = ">=1.1.0" },
 ]
+provides-extras = ["dev"]
 
 [package.metadata.requires-dev]
 dev = [
