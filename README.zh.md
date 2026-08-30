@@ -75,7 +75,7 @@
 
 ## 系统要求
 
-- Python 3.11 或更高版本
+- Python 3.14.6 或更高版本
 - `pyproject.toml` 中列出的依赖项，包括：
   - mcp
   - yfinance
@@ -179,4 +179,4 @@ uv run server.py
 
 ## 许可证
 
-MIT 
+MIT
