@@ -45,6 +45,14 @@ The server exposes the following tools through the Model Context Protocol:
 |------|-------------|
 | `get_recommendations` | Get analyst recommendations or upgrades/downgrades history |
 
+### Macro Events
+
+| Tool | Description |
+|------|-------------|
+| `get_fxmacrodata_catalogue` | Get supported FXMacroData macro indicators and endpoint coverage for a currency |
+| `get_fxmacrodata_calendar` | Get macroeconomic release calendar rows for a currency |
+| `get_fxmacrodata_latest_announcements` | Get the latest macroeconomic announcement rows for a currency |
+
 ## Real-World Use Cases
 
 With this MCP server, you can use Claude to:
@@ -72,6 +80,8 @@ With this MCP server, you can use Claude to:
 - "Analyze the institutional ownership changes in ServiceNow over the past year."
 - "Generate a report on the options market activity for Intuit stock with expiration in 30 days."
 - "Summarize the latest analyst upgrades and downgrades in the tech sector over the last 6 months."
+- "Show upcoming USD macroeconomic releases that may affect SPY this week."
+- "Get the latest JPY macro announcements before reviewing Toyota."
 
 ## Requirements
 
@@ -82,6 +92,11 @@ With this MCP server, you can use Claude to:
   - pandas
   - pydantic
   - and other packages for data processing
+
+Optional:
+
+- `FXMD_API_KEY` enables protected FXMacroData currencies and endpoint families.
+  Public USD examples work without an API key.
 
 ## Setup
 
