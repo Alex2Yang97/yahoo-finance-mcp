@@ -1,5 +1,3 @@
-[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/alex2yang97-yahoo-finance-mcp-badge.png)](https://mseep.ai/app/alex2yang97-yahoo-finance-mcp)
-
 # Yahoo Finance MCP Server
 
 <div align="right">
@@ -8,7 +6,7 @@
 
 This is a Model Context Protocol (MCP) server that provides comprehensive financial data from Yahoo Finance. It allows you to retrieve detailed information about stocks, including historical prices, company information, financial statements, options data, and market news.
 
-[![smithery badge](https://smithery.ai/badge/@Alex2Yang97/yahoo-finance-mcp)](https://smithery.ai/server/@Alex2Yang97/yahoo-finance-mcp)
+![GitHub last commit](https://img.shields.io/github/last-commit/modesty/pdf2json?color=olive)
 
 ## Demo
 
@@ -53,31 +51,31 @@ With this MCP server, you can use Claude to:
 
 ### Stock Analysis
 
-- **Price Analysis**: "Show me the historical stock prices for AAPL over the last 6 months with daily intervals."
-- **Financial Health**: "Get the quarterly balance sheet for Microsoft."
-- **Performance Metrics**: "What are the key financial metrics for Tesla from the stock info?"
-- **Trend Analysis**: "Compare the quarterly income statements of Amazon and Google."
-- **Cash Flow Analysis**: "Show me the annual cash flow statement for NVIDIA."
+- **Price Analysis**: "Show me the historical stock prices for NOW over the last 6 months with daily intervals."
+- **Financial Health**: "Get the quarterly balance sheet for Intuit."
+- **Performance Metrics**: "What are the key financial metrics for Intuit from the stock info?"
+- **Trend Analysis**: "Compare the quarterly income statements of ServiceNow and Intuit."
+- **Cash Flow Analysis**: "Show me the annual cash flow statement for ServiceNow."
 
 ### Market Research
 
-- **News Analysis**: "Get the latest news articles about Meta Platforms."
-- **Institutional Activity**: "Show me the institutional holders of Apple stock."
-- **Insider Trading**: "What are the recent insider transactions for Tesla?"
-- **Options Analysis**: "Get the options chain for SPY with expiration date 2024-06-21 for calls."
-- **Analyst Coverage**: "What are the analyst recommendations for Amazon over the last 3 months?"
+- **News Analysis**: "Get the latest news articles about Intuit."
+- **Institutional Activity**: "Show me the institutional holders of NOW stock."
+- **Insider Trading**: "What are the recent insider transactions for ServiceNow?"
+- **Options Analysis**: "Get the options chain for INTU with expiration date 2026-01-30 for calls."
+- **Analyst Coverage**: "What are the analyst recommendations for Intuit over the last 3 months?"
 
 ### Investment Research
 
-- "Create a comprehensive analysis of Microsoft's financial health using their latest quarterly financial statements."
+- "Create a comprehensive analysis of Intuit's financial health using their latest quarterly financial statements."
 - "Compare the dividend history and stock splits of Coca-Cola and PepsiCo."
-- "Analyze the institutional ownership changes in Tesla over the past year."
-- "Generate a report on the options market activity for Apple stock with expiration in 30 days."
+- "Analyze the institutional ownership changes in ServiceNow over the past year."
+- "Generate a report on the options market activity for Intuit stock with expiration in 30 days."
 - "Summarize the latest analyst upgrades and downgrades in the tech sector over the last 6 months."
 
 ## Requirements
 
-- Python 3.11 or higher
+- Python 3.14.6 or higher
 - Dependencies as listed in `pyproject.toml`, including:
   - mcp
   - yfinance
@@ -98,16 +96,16 @@ uvx --from git+https://github.com/Alex2Yang97/yahoo-finance-mcp yahoo-finance-mc
 ### Local development
 
 1. Clone this repository:
+
    ```bash
    git clone https://github.com/Alex2Yang97/yahoo-finance-mcp.git
    cd yahoo-finance-mcp
    ```
 
 2. Create and activate a virtual environment and install dependencies:
+
    ```bash
-   uv venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   uv pip install -e .
+   uv sync
    ```
 
 ## Usage
@@ -144,7 +142,8 @@ To integrate this server with Claude for Desktop:
    - Windows: `code $env:AppData\Claude\claude_desktop_config.json`
 
 3. Edit the Claude for Desktop config file, located at:
-   - macOS: 
+   - macOS:
+
      ```json
      {
        "mcpServers": {
@@ -159,7 +158,9 @@ To integrate this server with Claude for Desktop:
        }
      }
      ```
+
    - Windows:
+
      ```json
      {
        "mcpServers": {

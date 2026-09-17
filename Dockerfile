@@ -1,5 +1,5 @@
 # Use a Python image with uv pre-installed
-FROM ghcr.io/astral-sh/uv:python3.11-bookworm-slim AS uv
+FROM ghcr.io/astral-sh/uv:python3.14-bookworm-slim AS uv
 
 # Install the project into /app
 WORKDIR /app
@@ -21,12 +21,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY . .
 
 # Second stage: runtime image
-FROM python:3.11-slim
+FROM python:3.14-slim
 
 WORKDIR /app
 
 # Copy the virtual environment from the uv stage
-COPY --from=uv /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+COPY --from=uv /usr/local/lib/python3.14/site-packages /usr/local/lib/python3.14/site-packages
 COPY --from=uv /usr/local/bin /usr/local/bin
 
 # Copy application code
