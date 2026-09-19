@@ -20,7 +20,7 @@
 
 | 工具 | 描述 |
 |------|-------------|
-| `get_historical_stock_prices` | 获取股票的历史 OHLCV 数据，可自定义时间段和间隔 |
+| `get_historical_stock_prices` | 获取股票的历史 OHLCV 数据，可自定义时间段和间隔，或指定明确的起止日期区间 |
 | `get_stock_info` | 获取全面的股票数据，包括价格、指标和公司详情 |
 | `get_yahoo_finance_news` | 获取股票的最新新闻文章 |
 | `get_stock_actions` | 获取股票分红和拆股历史 |

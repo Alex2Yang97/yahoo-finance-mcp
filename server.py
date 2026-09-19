@@ -89,16 +89,26 @@ Args:
         The ticker symbol of the stock to get historical prices for, e.g. "AAPL"
     period : str
         Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-        Either Use period parameter or use start and end
-        Default is "1mo"
+        Either use the period parameter or use start and end. Default is "1mo".
+        Ignored when start and/or end are provided.
     interval : str
         Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
         Intraday data cannot extend last 60 days
         Default is "1d"
+    start : str
+        Download start date string (YYYY-MM-DD), inclusive. Default is None.
+        If provided, period is ignored.
+    end : str
+        Download end date string (YYYY-MM-DD), exclusive. Default is None.
+        If provided, period is ignored.
 """,
 )
 async def get_historical_stock_prices(
-    ticker: str, period: str = "1mo", interval: str = "1d"
+    ticker: str,
+    period: str = "1mo",
+    interval: str = "1d",
+    start: str | None = None,
+    end: str | None = None,
 ) -> str:
     """Get historical stock prices for a given ticker symbol
 
@@ -107,17 +117,26 @@ async def get_historical_stock_prices(
             The ticker symbol of the stock to get historical prices for, e.g. "AAPL"
         period : str
             Valid periods: 1d,5d,1mo,3mo,6mo,1y,2y,5y,10y,ytd,max
-            Either Use period parameter or use start and end
-            Default is "1mo"
+            Either use the period parameter or use start and end. Default is "1mo".
+            Ignored when start and/or end are provided.
         interval : str
             Valid intervals: 1m,2m,5m,15m,30m,60m,90m,1h,1d,5d,1wk,1mo,3mo
             Intraday data cannot extend last 60 days
             Default is "1d"
+        start : str
+            Download start date string (YYYY-MM-DD), inclusive. Default is None.
+            If provided, period is ignored.
+        end : str
+            Download end date string (YYYY-MM-DD), exclusive. Default is None.
+            If provided, period is ignored.
     """
     try:
         company = yf.Ticker(normalize_ticker(ticker))
         # Get the historical data directly (isin check is slow and unreliable)
-        hist_data = company.history(period=period, interval=interval)
+        if start is not None or end is not None:
+            hist_data = company.history(start=start, end=end, interval=interval)
+        else:
+            hist_data = company.history(period=period, interval=interval)
         hist_data = hist_data.reset_index(names="Date")
         hist_data = hist_data.to_json(orient="records", date_format="iso")
         return hist_data

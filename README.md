@@ -20,7 +20,7 @@ The server exposes the following tools through the Model Context Protocol:
 
 | Tool | Description |
 |------|-------------|
-| `get_historical_stock_prices` | Get historical OHLCV data for a stock with customizable period and interval |
+| `get_historical_stock_prices` | Get historical OHLCV data for a stock with a customizable period/interval or an explicit start/end date range |
 | `get_stock_info` | Get comprehensive stock data including price, metrics, and company details |
 | `get_yahoo_finance_news` | Get latest news articles for a stock |
 | `get_stock_actions` | Get stock dividends and splits history |
