@@ -1,4 +1,5 @@
 import json
+import re
 from enum import Enum
 
 import pandas as pd
@@ -28,6 +29,34 @@ class HolderType(str, Enum):
 class RecommendationType(str, Enum):
     recommendations = "recommendations"
     upgrades_downgrades = "upgrades_downgrades"
+
+
+# --- Ticker normalization ------------------------------------------------
+# Yahoo Finance represents US class shares with a hyphen (e.g. "BRK-B"), but
+# users and LLMs routinely type them with a dot or slash ("BRK.B", "BRK/B").
+# For the dotted form yfinance raises nothing and returns *empty* price data,
+# so the bad request fails silently. Normalize the known single-letter US
+# share-class suffixes to the hyphen form.
+#
+# Only a single trailing "A"/"B" class letter is converted. Exchange suffixes
+# such as .TO, .L, .HK, .T, .AX are legitimate yfinance tickers and are left
+# untouched (e.g. "SHOP.TO", "RIO.L", "7203.T" are returned unchanged).
+_CLASS_SHARE_SUFFIXES = {"A", "B"}
+
+
+def normalize_ticker(ticker: str) -> str:
+    """Normalize US class-share tickers to the hyphen form yfinance expects.
+
+    "BRK.B" / "BRK/B" -> "BRK-B", "BF.B" -> "BF-B". Any symbol that is not a
+    plain <root><separator><class-letter> class share (including
+    exchange-suffixed tickers like "SHOP.TO" or "RIO.L") is returned unchanged.
+    """
+    if not ticker:
+        return ticker
+    match = re.fullmatch(r"\s*([A-Za-z]{1,6})[./-]([A-Za-z])\s*", ticker)
+    if match and match.group(2).upper() in _CLASS_SHARE_SUFFIXES:
+        return f"{match.group(1).upper()}-{match.group(2).upper()}"
+    return ticker
 
 
 # Initialize MCP server
@@ -86,7 +115,7 @@ async def get_historical_stock_prices(
             Default is "1d"
     """
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get the historical data directly (isin check is slow and unreliable)
         hist_data = company.history(period=period, interval=interval)
         hist_data = hist_data.reset_index(names="Date")
@@ -110,7 +139,7 @@ Args:
 async def get_stock_info(ticker: str) -> str:
     """Get stock information for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get info directly (isin check is slow and unreliable)
         info = company.info
         # Check for fundamental properties that valid tickers should have
@@ -140,7 +169,7 @@ async def get_yahoo_finance_news(ticker: str) -> str:
             The ticker symbol of the stock to get news for, e.g. "AAPL"
     """
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get news directly (isin check is slow and unreliable)
         news_data = company.news
         if not news_data:
@@ -178,7 +207,7 @@ Args:
 async def get_stock_actions(ticker: str) -> str:
     """Get stock dividends and stock splits for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         actions_df = company.actions
         actions_df = actions_df.reset_index(names="Date")
         return actions_df.to_json(orient="records", date_format="iso")
@@ -201,7 +230,7 @@ Args:
 async def get_financial_statement(ticker: str, financial_type: str) -> str:
     """Get financial statement for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get financial statement directly (isin check is slow and unreliable)
         if financial_type == FinancialType.income_stmt:
             financial_statement = company.income_stmt
@@ -262,7 +291,7 @@ Args:
 async def get_holder_info(ticker: str, holder_type: str) -> str:
     """Get holder information for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get holder info directly (isin check is slow and unreliable)
         if holder_type == HolderType.major_holders:
             return company.major_holders.reset_index(names="metric").to_json(orient="records")
@@ -295,7 +324,7 @@ Args:
 async def get_option_expiration_dates(ticker: str) -> str:
     """Fetch the available options expiration dates for a given ticker symbol."""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get options directly (isin check is slow and unreliable)
         options = company.options
         if not options:
@@ -449,7 +478,7 @@ async def get_option_chain(
         str: JSON string containing the option chain data
     """
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get options directly (isin check is slow and unreliable)
 
         # Check if the expiration date is valid
@@ -489,7 +518,7 @@ Args:
 async def get_recommendations(ticker: str, recommendation_type: str, months_back: int = 12) -> str:
     """Get recommendations or upgrades/downgrades for a given ticker symbol"""
     try:
-        company = yf.Ticker(ticker)
+        company = yf.Ticker(normalize_ticker(ticker))
         # Get recommendations directly (isin check is slow and unreliable)
         if recommendation_type == RecommendationType.recommendations:
             recommendations = company.recommendations  # type: ignore
