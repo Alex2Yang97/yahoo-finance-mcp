@@ -1,7 +1,7 @@
 # Yahoo Finance MCP Server
 
 <div align="right">
-  <a href="README.md">English</a> | <a href="README.zh.md">中文</a>
+  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </div>
 
 This is a Model Context Protocol (MCP) server that provides comprehensive financial data from Yahoo Finance. It allows you to retrieve detailed information about stocks, including historical prices, company information, financial statements, options data, and market news.

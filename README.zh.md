@@ -1,7 +1,7 @@
 # Yahoo Finance MCP 服务器
 
 <div align="right">
-  <a href="README.md">English</a> | <a href="README.zh.md">中文</a>
+  <a href="README.md">English</a> | <a href="README.zh.md">中文</a> | <a href="README.pt-BR.md">Português (BR)</a>
 </div>
 
 这是一个基于模型上下文协议（MCP）的服务器，提供来自 Yahoo Finance 的全面金融数据。它允许您获取股票的详细信息，包括历史价格、公司信息、财务报表、期权数据和市场新闻。
